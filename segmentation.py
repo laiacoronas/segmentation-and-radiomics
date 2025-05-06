@@ -51,11 +51,11 @@ def load_nii(filepath):
 #data1, affine1 =load_nii(r"C:\Users\Maria Fité\Documents\MSC - HEALTH DATA SCIENCE\Q2\Machine Learning (ML)\Challange 2\Dataset\VOIs\image\LIDC-IDRI-0001_R_1.nii.gz")
 #data_gt, affine_gt =load_nii(r"C:\Users\Maria Fité\Documents\MSC - HEALTH DATA SCIENCE\Q2\Machine Learning (ML)\Challange 2\Dataset\VOIs\nodule_mask\LIDC-IDRI-0001_R_1.nii.gz")
 
-#data1, affine1 =load_nii(r"C:\Users\lclai\Desktop\VOIs\VOIs\image\LIDC-IDRI-0001_R_1.nii.gz")
-#data_gt, affine_gt =load_nii(r"C:\Users\lclai\Desktop\VOIs\VOIs\nodule_mask\LIDC-IDRI-0001_R_1.nii.gz")
+data1, affine1 =load_nii(r"C:\Users\lclai\Desktop\VOIs\VOIs\image\LIDC-IDRI-0001_R_1.nii.gz")
+data_gt, affine_gt =load_nii(r"C:\Users\lclai\Desktop\VOIs\VOIs\nodule_mask\LIDC-IDRI-0001_R_1.nii.gz")
 
-data1, affine1 =load_nii(r"C:\Users\CLAUDIA\Desktop\Clau\MHEDAS\PRIMER\SEGON SEM\ML\challenge2\image\LIDC-IDRI-0007_R_1.nii.gz")
-data_gt, affine_gt =load_nii(r"C:\Users\CLAUDIA\Desktop\Clau\MHEDAS\PRIMER\SEGON SEM\ML\challenge2\nodule_mask\LIDC-IDRI-0007_R_1.nii.gz")
+#data1, affine1 =load_nii(r"C:\Users\CLAUDIA\Desktop\Clau\MHEDAS\PRIMER\SEGON SEM\ML\challenge2\image\LIDC-IDRI-0007_R_1.nii.gz")
+#data_gt, affine_gt =load_nii(r"C:\Users\CLAUDIA\Desktop\Clau\MHEDAS\PRIMER\SEGON SEM\ML\challenge2\nodule_mask\LIDC-IDRI-0007_R_1.nii.gz")
 
 # Visualize a middle slice 
 slice_index = data1.shape[2] // 2
@@ -125,7 +125,7 @@ plt.show()
 #%% Post-processing Simple threshoolding
 
 # We will apply an oppening 
-size_kernel = 3
+size_kernel = 4
 kernel = Morpho.cube(size_kernel)
 binary_thOpen = Morpho.binary_opening(binary_simpleth, kernel)
 
@@ -175,7 +175,7 @@ plt.show()
 #%% Otsu thresholding 
 
 # Find otsu threshold
-otsu_threshold = threshold_otsu(smoothed_data)
+otsu_threshold = threshold_otsu(smoothed_data) - 50
 print(f"Otsu threshold: {otsu_threshold:.3f}")
 
 # Binarize image using Otsu threshold
@@ -209,6 +209,8 @@ size_kernel = 3
 kernel = Morpho.cube(size_kernel)
 binary_otsuOpen = Morpho.binary_opening(binary_otsu, kernel)
 
+binary_otsuOpen = closing(binary_otsuOpen, kernel)
+
 # Initialize clean volume
 mask_clean_volume_otsu = np.zeros_like(binary_otsuOpen, dtype=np.uint8)
 
@@ -220,9 +222,9 @@ for idx in range(binary_otsuOpen.shape[2]):
     min_area = 10
     if regions: # select biggest region
         largest_region = max(regions, key=lambda r: r.area)
-        mask_clean_volume_th[:, :, idx] = (labeled_slice == largest_region.label).astype(np.uint8)
+        mask_clean_volume_otsu[:, :, idx] = (labeled_slice == largest_region.label).astype(np.uint8)
     else:
-        mask_clean_volume_th[:, :, idx] = 0
+        mask_clean_volume_otsu[:, :, idx] = 0
 
 
 # Show results
@@ -268,8 +270,15 @@ def compute_metrics(pred, gt):
     dice = 2 * TP / (2 * TP + FP + FN + eps)
     precision = TP / (TP + FP + eps)
     recall = TP / (TP + FN + eps)
+    accuracy = (TP + TN) / (TP + TN + FP + FN + eps)
 
-    return {"IoU": iou, "Dice": dice, "Precision": precision, "Recall": recall}
+    return {
+        'IoU': iou,
+        'Dice': dice,
+        'Precision': precision,
+        'Recall': recall,
+        'Accuracy': accuracy
+    }
 
 # Evaluate simple thresholding
 metrics_simple = compute_metrics(mask_clean_volume_th, data_gt)
