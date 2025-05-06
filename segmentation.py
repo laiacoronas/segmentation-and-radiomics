@@ -26,6 +26,12 @@ from sklearn.metrics import confusion_matrix
 from sklearn.cluster import KMeans
 from skimage.filters import sobel, prewitt, roberts
 from sklearn.preprocessing import StandardScaler
+
+#%% Environment onfiguration
+
+current_file = os.path.abspath(__file__)
+current_dir = os.path.dirname(current_file)
+os.chdir(current_dir)
  
 #%% Load data
 
@@ -38,18 +44,31 @@ def load_nii(filepath):
     return data, affine
 
 # Load images
-data1, affine1 =load_nii(r"C:\Users\Maria Fité\Documents\MSC - HEALTH DATA SCIENCE\Q2\Machine Learning (ML)\Challange 2\Dataset\VOIs\image\LIDC-IDRI-0001_R_1.nii.gz")
-data_gt, affine_gt =load_nii(r"C:\Users\Maria Fité\Documents\MSC - HEALTH DATA SCIENCE\Q2\Machine Learning (ML)\Challange 2\Dataset\VOIs\nodule_mask\LIDC-IDRI-0001_R_1.nii.gz")
-
-#data1, affine1 =load_nii(r"C:\Users\lclai\Desktop\VOIs\VOIs\image\LIDC-IDRI-0001_R_1.nii.gz")
-#data_gt, affine_gt =load_nii(r"C:\Users\lclai\Desktop\VOIs\VOIs\nodule_mask\LIDC-IDRI-0001_R_1.nii.gz")
+data1, affine1 =load_nii(os.path.join(current_dir,"data/full_data/VOIs/image/LIDC-IDRI-0001_R_1.nii.gz"))
+ct1, affine_ct_1 =load_nii(os.path.join(current_dir,"data/sample/CT/image/LIDC-IDRI-0001.nii.gz"))
+data_gt, affine_gt =load_nii(os.path.join(current_dir,"data/full_data/VOIs/nodule_mask/LIDC-IDRI-0001_R_1.nii.gz"))
 
 
 # Visualize a middle slice 
+
 slice_index = data1.shape[2] // 2
-plt.imshow(data1[:, :, slice_index], cmap='gray')
-plt.title(f'Axial slice {slice_index}')
-plt.axis('off')
+
+# Create triple subplot
+fig, axes = plt.subplots(1, 3, figsize=(10, 5))
+
+axes[0].imshow(ct1[:, :,  ct1.shape[2] // 2], cmap='gray')
+axes[0].set_title('Full CT Image')
+axes[0].axis('off')
+
+axes[1].imshow(data1[:, :, slice_index], cmap='gray')
+axes[1].set_title('VOI Image')
+axes[1].axis('off')
+
+axes[2].imshow(data_gt[:, :, slice_index], cmap='gray')
+axes[2].set_title('Nodule Mask')
+axes[2].axis('off')
+
+plt.tight_layout()
 plt.show()
 
 #%% Pre-processing
