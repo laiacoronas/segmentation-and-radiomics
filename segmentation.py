@@ -21,17 +21,29 @@ import matplotlib.pyplot as plt
 from scipy.ndimage import gaussian_filter
 from skimage.filters import threshold_otsu
 from skimage import morphology as Morpho
+from skimage.morphology import closing, opening, disk
 from skimage.measure import label, regionprops
 from sklearn.metrics import confusion_matrix
 from sklearn.cluster import KMeans
 from skimage.filters import sobel, prewitt, roberts
+from skimage.feature import canny
 from sklearn.preprocessing import StandardScaler
+<<<<<<< HEAD
+from skimage.filters import laplace, gaussian
+from skimage.filters.rank import entropy
+from skimage.morphology import disk
+from skimage.util import img_as_ubyte
+from skimage.segmentation import watershed
+from scipy import ndimage as ndi
+from skimage.feature import peak_local_max
+=======
 
 #%% Environment onfiguration
 
 current_file = os.path.abspath(__file__)
 current_dir = os.path.dirname(current_file)
 os.chdir(current_dir)
+>>>>>>> 0247c4da04ef0f5e56215887e13f42f7f623e154
  
 #%% Load data
 
@@ -44,10 +56,20 @@ def load_nii(filepath):
     return data, affine
 
 # Load images
+<<<<<<< HEAD
+#data1, affine1 =load_nii(r"C:\Users\Maria Fité\Documents\MSC - HEALTH DATA SCIENCE\Q2\Machine Learning (ML)\Challange 2\Dataset\VOIs\image\LIDC-IDRI-0001_R_1.nii.gz")
+#data_gt, affine_gt =load_nii(r"C:\Users\Maria Fité\Documents\MSC - HEALTH DATA SCIENCE\Q2\Machine Learning (ML)\Challange 2\Dataset\VOIs\nodule_mask\LIDC-IDRI-0001_R_1.nii.gz")
+
+#data1, affine1 =load_nii(r"C:\Users\lclai\Desktop\VOIs\VOIs\image\LIDC-IDRI-0001_R_1.nii.gz")
+#data_gt, affine_gt =load_nii(r"C:\Users\lclai\Desktop\VOIs\VOIs\nodule_mask\LIDC-IDRI-0001_R_1.nii.gz")
+=======
 data1, affine1 =load_nii(os.path.join(current_dir,"data/full_data/VOIs/image/LIDC-IDRI-0001_R_1.nii.gz"))
 ct1, affine_ct_1 =load_nii(os.path.join(current_dir,"data/sample/CT/image/LIDC-IDRI-0001.nii.gz"))
 data_gt, affine_gt =load_nii(os.path.join(current_dir,"data/full_data/VOIs/nodule_mask/LIDC-IDRI-0001_R_1.nii.gz"))
+>>>>>>> 0247c4da04ef0f5e56215887e13f42f7f623e154
 
+data1, affine1 =load_nii(r"C:\Users\CLAUDIA\Desktop\Clau\MHEDAS\PRIMER\SEGON SEM\ML\challenge2\image\LIDC-IDRI-0007_R_1.nii.gz")
+data_gt, affine_gt =load_nii(r"C:\Users\CLAUDIA\Desktop\Clau\MHEDAS\PRIMER\SEGON SEM\ML\challenge2\nodule_mask\LIDC-IDRI-0007_R_1.nii.gz")
 
 # Visualize a middle slice 
 
@@ -70,6 +92,7 @@ axes[2].axis('off')
 
 plt.tight_layout()
 plt.show()
+
 
 #%% Pre-processing
 
@@ -135,6 +158,7 @@ size_kernel = 3
 kernel = Morpho.cube(size_kernel)
 binary_thOpen = Morpho.binary_opening(binary_simpleth, kernel)
 
+
 # Initialize clean volume
 mask_clean_volume_th = np.zeros_like(binary_thOpen, dtype=np.uint8)
 
@@ -143,6 +167,7 @@ for idx in range(binary_thOpen.shape[2]):
     opened_slice = binary_thOpen[:, :, idx] # select slice
     labeled_slice = label(opened_slice) # label regions
     regions = regionprops(labeled_slice) # obtain region properties
+    min_area = 10
     if regions: # select biggest region
         largest_region = max(regions, key=lambda r: r.area)
         mask_clean_volume_th[:, :, idx] = (labeled_slice == largest_region.label).astype(np.uint8)
@@ -155,7 +180,7 @@ plt.figure(figsize=(12, 4))
 
 plt.subplot(1, 4, 1)
 plt.imshow(binary_simpleth[:, :, slice_idx], cmap='gray')
-plt.title('Binarized Image Otsu')
+plt.title('Binarized Image')
 plt.axis('off')
 
 plt.subplot(1, 4, 2)
@@ -221,11 +246,12 @@ for idx in range(binary_otsuOpen.shape[2]):
     opened_slice = binary_otsuOpen[:, :, idx] # select slice
     labeled_slice = label(opened_slice) # label regions
     regions = regionprops(labeled_slice) # obtain region properties
+    min_area = 10
     if regions: # select biggest region
         largest_region = max(regions, key=lambda r: r.area)
-        mask_clean_volume_otsu[:, :, idx] = (labeled_slice == largest_region.label).astype(np.uint8)
+        mask_clean_volume_th[:, :, idx] = (labeled_slice == largest_region.label).astype(np.uint8)
     else:
-        mask_clean_volume_otsu[:, :, idx] = 0
+        mask_clean_volume_th[:, :, idx] = 0
 
 
 # Show results
@@ -296,10 +322,14 @@ for idx in range(smoothed_data.shape[2]):
     
     # Filter banks
     features = []
-    features.append(slice_data.flatten())                      # Intensity
-    features.append(sobel(slice_data).flatten())               # Sobel
-    features.append(prewitt(slice_data).flatten())             # Prewitt
-    features.append(roberts(slice_data).flatten())             # Roberts
+    features.append(slice_data.flatten())                                                  # Intensity
+    features.append(sobel(slice_data).flatten())                                           # Sobel
+    features.append(prewitt(slice_data).flatten())                                         # Prewitt
+    features.append(roberts(slice_data).flatten())                                         # Roberts
+    features.append(laplace(gaussian(slice_data, sigma=1)).flatten())                      # laplace
+    normalized_slice = np.clip(slice_data, -1, 1)                                          
+    features.append(entropy(img_as_ubyte(normalized_slice), disk(3)).flatten())            # Entropy
+    features.append(gaussian(slice_data, sigma=2).flatten())                               # Gauss
 
     X = np.array(features).T
 
@@ -308,13 +338,13 @@ for idx in range(smoothed_data.shape[2]):
     X_scaled = scaler.fit_transform(X)
 
     # Apply KMeans
-    kmeans = KMeans(n_clusters=3, random_state=42)
+    kmeans = KMeans(n_clusters=4, random_state=42)
     kmeans_labels = kmeans.fit_predict(X_scaled)
     kmeans_seg_slice = kmeans_labels.reshape(slice_data.shape)
     kmeans_seg[:, :, idx] = kmeans_seg_slice
     
     # Identify the cluster with the highest mean intensity
-    cluster_means = [slice_data[kmeans_seg_slice == i].mean() for i in range(3)]
+    cluster_means = [slice_data[kmeans_seg_slice == i].mean() for i in range(4)]
     background_cluster = np.argmin(cluster_means)
 
 
@@ -347,23 +377,23 @@ plt.show()
 # We will apply an oppening 
 size_kernel = 3
 kernel = Morpho.cube(size_kernel)
-#binary_kmeansEro = Morpho.binary_erosion(binary_kmeans, kernel)
 binary_kmeansOpen = Morpho.binary_opening(binary_kmeans, kernel)
 
 # Initialize clean volume
 mask_clean_volume_kmeans = np.zeros_like(binary_kmeans, dtype=np.uint8)
+
 
 # Run for all the volume
 for idx in range(binary_kmeansOpen.shape[2]):
     opened_slice = binary_kmeansOpen[:, :, idx]  # select slice
     labeled_slice = label(opened_slice)          # label regions
     regions = regionprops(labeled_slice)         # obtain region properties
-    if regions: # select biggest region
-        largest_region = max(regions, key=lambda r: r.area)
-        mask_clean_volume_kmeans[:, :, idx] = (labeled_slice == largest_region.label).astype(np.uint8)
-    else:
-        mask_clean_volume_kmeans[:, :, idx] = 0
-
+    min_area = 10  # Instead of keeping only the largest region, keep all regions above a minimum area threshold.
+    for region in regions:
+        if region.area >= min_area:
+            mask_clean_volume_kmeans[:, :, idx][labeled_slice == region.label] = 1
+        else:
+            mask_clean_volume_kmeans[:, :, idx] = 0
 
 # Show results
 plt.figure(figsize=(12, 4))
