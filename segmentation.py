@@ -11,7 +11,6 @@ Apply unsupervised techniques to obtain a segmentation of lesions in VOIs:
 """
 
 #%% Preparing enviroment
-
 # Import libraries
 import nibabel as nib
 import pandas as pd
@@ -28,7 +27,6 @@ from sklearn.cluster import KMeans
 from skimage.filters import sobel, prewitt, roberts
 from skimage.feature import canny
 from sklearn.preprocessing import StandardScaler
-<<<<<<< HEAD
 from skimage.filters import laplace, gaussian
 from skimage.filters.rank import entropy
 from skimage.morphology import disk
@@ -36,17 +34,11 @@ from skimage.util import img_as_ubyte
 from skimage.segmentation import watershed
 from scipy import ndimage as ndi
 from skimage.feature import peak_local_max
-=======
 
-#%% Environment onfiguration
 
-current_file = os.path.abspath(__file__)
-current_dir = os.path.dirname(current_file)
-os.chdir(current_dir)
->>>>>>> 0247c4da04ef0f5e56215887e13f42f7f623e154
- 
 #%% Load data
 
+# Define loading function
 # Define loading function
 def load_nii(filepath):
     """Load NIfTI image and return array and affine"""
@@ -56,41 +48,20 @@ def load_nii(filepath):
     return data, affine
 
 # Load images
-<<<<<<< HEAD
 #data1, affine1 =load_nii(r"C:\Users\Maria Fité\Documents\MSC - HEALTH DATA SCIENCE\Q2\Machine Learning (ML)\Challange 2\Dataset\VOIs\image\LIDC-IDRI-0001_R_1.nii.gz")
 #data_gt, affine_gt =load_nii(r"C:\Users\Maria Fité\Documents\MSC - HEALTH DATA SCIENCE\Q2\Machine Learning (ML)\Challange 2\Dataset\VOIs\nodule_mask\LIDC-IDRI-0001_R_1.nii.gz")
 
 #data1, affine1 =load_nii(r"C:\Users\lclai\Desktop\VOIs\VOIs\image\LIDC-IDRI-0001_R_1.nii.gz")
 #data_gt, affine_gt =load_nii(r"C:\Users\lclai\Desktop\VOIs\VOIs\nodule_mask\LIDC-IDRI-0001_R_1.nii.gz")
-=======
-data1, affine1 =load_nii(os.path.join(current_dir,"data/full_data/VOIs/image/LIDC-IDRI-0001_R_1.nii.gz"))
-ct1, affine_ct_1 =load_nii(os.path.join(current_dir,"data/sample/CT/image/LIDC-IDRI-0001.nii.gz"))
-data_gt, affine_gt =load_nii(os.path.join(current_dir,"data/full_data/VOIs/nodule_mask/LIDC-IDRI-0001_R_1.nii.gz"))
->>>>>>> 0247c4da04ef0f5e56215887e13f42f7f623e154
 
 data1, affine1 =load_nii(r"C:\Users\CLAUDIA\Desktop\Clau\MHEDAS\PRIMER\SEGON SEM\ML\challenge2\image\LIDC-IDRI-0007_R_1.nii.gz")
 data_gt, affine_gt =load_nii(r"C:\Users\CLAUDIA\Desktop\Clau\MHEDAS\PRIMER\SEGON SEM\ML\challenge2\nodule_mask\LIDC-IDRI-0007_R_1.nii.gz")
 
 # Visualize a middle slice 
-
 slice_index = data1.shape[2] // 2
-
-# Create triple subplot
-fig, axes = plt.subplots(1, 3, figsize=(10, 5))
-
-axes[0].imshow(ct1[:, :,  ct1.shape[2] // 2], cmap='gray')
-axes[0].set_title('Full CT Image')
-axes[0].axis('off')
-
-axes[1].imshow(data1[:, :, slice_index], cmap='gray')
-axes[1].set_title('VOI Image')
-axes[1].axis('off')
-
-axes[2].imshow(data_gt[:, :, slice_index], cmap='gray')
-axes[2].set_title('Nodule Mask')
-axes[2].axis('off')
-
-plt.tight_layout()
+plt.imshow(data1[:, :, slice_index], cmap='gray')
+plt.title(f'Axial slice {slice_index}')
+plt.axis('off')
 plt.show()
 
 
