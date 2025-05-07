@@ -1,8 +1,14 @@
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""
-Created on Wed May  7 09:37:52 2025
 
-@author: Maria Fité
+"""
+Milestone 1 (Segmentation): Nodule Segmentation. 
+Apply unsupervised techniques to obtain a segmentation of lesions in VOIs:
+ 1. Use a classic standard pipeline over intensity volumes.
+ 2. Use Otsu threholding and different morphological operations.
+ 3. Quantify the performance using fair segmentation metrics.
+ 4. Use kmeans over classic filter banks.
+ 5. Compare between different unsupervised methods.
 """
 
 #%% Preparing enviroment
