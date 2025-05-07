@@ -46,13 +46,14 @@ def save_nii(data, affine, output_path):
     img = nib.Nifti1Image(data, affine)
     nib.save(img, output_path)
 
+# Change working directory
+current_file = os.path.abspath(__file__)
+current_dir = os.path.dirname(current_file)
+os.chdir(current_dir)
+
 # Load images
-data1, affine1 =load_nii(r"C:\Users\Maria Fité\Documents\MSC - HEALTH DATA SCIENCE\Q2\Machine Learning (ML)\Challange 2\Dataset\VOIs\image\LIDC-IDRI-0001_R_1.nii.gz")
-data_gt, affine_gt =load_nii(r"C:\Users\Maria Fité\Documents\MSC - HEALTH DATA SCIENCE\Q2\Machine Learning (ML)\Challange 2\Dataset\VOIs\nodule_mask\LIDC-IDRI-0001_R_1.nii.gz")
-
-#data1, affine1 =load_nii(r"C:\Users\lclai\Desktop\VOIs\VOIs\image\LIDC-IDRI-0001_R_1.nii.gz")
-#data_gt, affine_gt =load_nii(r"C:\Users\lclai\Desktop\VOIs\VOIs\nodule_mask\LIDC-IDRI-0001_R_1.nii.gz")
-
+data1, affine1 =load_nii(r"data/full_data/VOIs/image/LIDC-IDRI-0017_R_1.nii.gz")
+data_gt, affine_gt =load_nii(r"data/full_data/VOIs/nodule_mask/LIDC-IDRI-0017_R_1.nii.gz")
 
 # Visualize a middle slice 
 slice_index = data1.shape[2] // 2
@@ -286,14 +287,14 @@ print("\n--- Metrics (Otsu) ---")
 for k, v in metrics_otsu.items():
     print(f"{k}: {v:.3f}")
 
-#%% KMeans over filter banks no va be 
+#%% KMeans over filter banks 
 
 # define function with kmeans
 def kmeans_segmentation(smoothed_data):
 
     binary_kmeans = np.zeros_like(smoothed_data, dtype=np.uint8)
     kmeans_seg = np.zeros_like(smoothed_data, dtype=np.uint8)
-    
+
     for idx in range(smoothed_data.shape[2]):
         slice_data = smoothed_data[:, :, idx]
         # Filter banks
@@ -311,76 +312,13 @@ def kmeans_segmentation(smoothed_data):
         scaler = StandardScaler()
         X_scaled = scaler.fit_transform(X)
         # Apply KMeans
-        kmeans = KMeans(n_clusters=4, random_state=42)
-        kmeans_labels = kmeans.fit_predict(X_scaled)
-        kmeans_seg_slice = kmeans_labels.reshape(slice_data.shape)
-        kmeans_seg[:, :, idx] = kmeans_seg_slice
-        # Identify the cluster with the highest mean intensity
-        cluster_means = [slice_data[kmeans_seg_slice == i].mean() for i in range(4)]
-        background_cluster = np.argmin(cluster_means)
-        # Create binary mask
-        binary_kmeans[:, :, idx] = (kmeans_seg_slice != background_cluster).astype(np.uint8)
-    return binary_kmeans, kmeans_seg
-
-# Apply kmeans 
-binary_kmeans, kmeans_seg = kmeans_segmentation(smoothed_data)
-
-# Show results
-plt.figure(figsize=(10, 5))
-
-plt.subplot(1, 3, 1)
-plt.imshow(kmeans_seg[:, :, slice_idx], cmap='gray')
-plt.title("K-Means Segmentation")
-plt.axis('off')
-
-plt.subplot(1, 3, 2)
-plt.imshow(binary_kmeans[:, :, slice_idx], cmap='gray')
-plt.title("Binary result")
-plt.axis('off')
-
-plt.subplot(1, 3, 3)
-plt.imshow(data_gt[:, :, slice_idx], cmap='gray')
-plt.title("Ground Truth")
-plt.axis('off')
-
-plt.tight_layout()
-plt.show()
-
-#%% KMeans over filter banks 
-
-# define function with kmeans
-def kmeans_segmentation(smoothed_data):
-
-    binary_kmeans = np.zeros_like(smoothed_data, dtype=np.uint8)
-    kmeans_seg = np.zeros_like(smoothed_data, dtype=np.uint8)
-    
-    for idx in range(smoothed_data.shape[2]):
-        slice_data = smoothed_data[:, :, idx]
-        
-        # Filter banks
-        features = []
-        features.append(slice_data.flatten())                      # Intensity
-        features.append(sobel(slice_data).flatten())               # Sobel
-        features.append(prewitt(slice_data).flatten())             # Prewitt
-        features.append(roberts(slice_data).flatten())             # Roberts
-    
-        X = np.array(features).T
-    
-        # Normalize
-        scaler = StandardScaler()
-        X_scaled = scaler.fit_transform(X)
-    
-        # Apply KMeans
         kmeans = KMeans(n_clusters=3, random_state=42)
         kmeans_labels = kmeans.fit_predict(X_scaled)
         kmeans_seg_slice = kmeans_labels.reshape(slice_data.shape)
         kmeans_seg[:, :, idx] = kmeans_seg_slice
-        
         # Identify the cluster with the highest mean intensity
         cluster_means = [slice_data[kmeans_seg_slice == i].mean() for i in range(3)]
         background_cluster = np.argmin(cluster_means)
-    
-    
         # Create binary mask
         binary_kmeans[:, :, idx] = (kmeans_seg_slice != background_cluster).astype(np.uint8)
     return binary_kmeans, kmeans_seg
@@ -444,11 +382,11 @@ for k, v in metrics_kmeans.items():
 #%% Loop for all the images
 
 # Paths
-input_folder = r"C:\Users\Maria Fité\Documents\MSC - HEALTH DATA SCIENCE\Q2\Machine Learning (ML)\Challange 2\Dataset\VOIs\image"
-input_folder_gt = r"C:\Users\Maria Fité\Documents\MSC - HEALTH DATA SCIENCE\Q2\Machine Learning (ML)\Challange 2\Dataset\VOIs\nodule_mask"
-output_folder_sth = r"C:\Users\Maria Fité\Documents\MSC - HEALTH DATA SCIENCE\Q2\Machine Learning (ML)\Challange 2\Maks generated\simple_th"
-output_folder_otsu = r"C:\Users\Maria Fité\Documents\MSC - HEALTH DATA SCIENCE\Q2\Machine Learning (ML)\Challange 2\Maks generated\otsu"
-output_folder_kmeans = r"C:\Users\Maria Fité\Documents\MSC - HEALTH DATA SCIENCE\Q2\Machine Learning (ML)\Challange 2\Maks generated\k_means"
+input_folder = r"data/full_data/VOIs/image"
+input_folder_gt = r"data/full_data/VOIs/nodule_mask"
+output_folder_sth = r"output/Maks generated/simple_th"
+output_folder_otsu = r"output/Maks generated/otsu"
+output_folder_kmeans = r"output/Maks generated/k_means"
 
 # Ensure folders exist
 os.makedirs(output_folder_sth, exist_ok=True)
@@ -496,35 +434,14 @@ for filename in os.listdir(input_folder):
         print ('Processing DONE')
 
         # Save processed images
-        #save_nii(mask_clean_volume_th, affine, output_path_sth)
-        #save_nii(mask_clean_volume_otsu, affine, output_path_otsu)
-        #save_nii(mask_clean_volume_kmeans, affine, output_path_kmeans)
+        save_nii(mask_clean_volume_th, affine, output_path_sth)
+        save_nii(mask_clean_volume_otsu, affine, output_path_otsu)
+        save_nii(mask_clean_volume_kmeans, affine, output_path_kmeans)
 
         # Save metrics
         metrics_sth_list.append(metrics_simple)
         metrics_otsu_list.append(metrics_otsu)
         metrics_kmeans_list.append(metrics_kmeans)
-
-
-#%%
-
-import pandas as pd
-
-# Convert list to df
-metrics_df = pd.DataFrame(metrics_sth_list)
-
-mean_metrics = metrics_df.mean()
-std_metrics = metrics_df.std()
-
-# Combinamos ambas en un único DataFrame para visualizarlas juntas
-summary_df = pd.DataFrame({
-    "Mean": mean_metrics,
-    "Std": std_metrics
-})
-
-print("Resumen de métricas:")
-print(summary_df)
-
 
 #%% Summary of all methods
 
