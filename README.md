@@ -8,4 +8,4 @@ The repository is organized as follows:
 
 - Output: Contains all the results of this project, including the annotated dataset, VOIs of the sample data, and masks generated from the segmentation of the entire dataset.
 
-- Codes: Includes the definitive scripts used to perform each task and save the results in the output folder.
+- Codes: Scripts used to perform each task and save the results in the output folder.
