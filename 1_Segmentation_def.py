@@ -48,9 +48,15 @@ def load_nii(filepath):
 
 # Define saving function
 def save_nii(data, affine, output_path):
-    """Save NIfTI image"""
+
+    if data.dtype == bool:
+        data = data.astype(np.uint8)  
+    elif not np.issubdtype(data.dtype, np.number):
+        raise ValueError(f"Unsupported data type '{data.dtype}' for NIfTI. Use numeric types like int16, float32, etc.")
+    
     img = nib.Nifti1Image(data, affine)
     nib.save(img, output_path)
+    print(f"Image saved to {output_path}")
 
 # Change working directory
 current_file = os.path.abspath(__file__)
