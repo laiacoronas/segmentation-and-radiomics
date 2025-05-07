@@ -1,21 +1,13 @@
 # -*- coding: utf-8 -*-
-"""
-Created on Wed May  7 13:34:14 2025
 
-@author: jaume
-"""
 
-#%% Preparing enviroment
+#%% Environment
 # Import libraries
 import pandas as pd
 import numpy as np
 import os
 
-#%%
-# script path
 os.chdir(os.path.dirname(os.path.realpath('__file__')))
-
-# Load the Excel file from the current directory
 df = pd.read_excel("data/sample/MetadatabyAnnotation.xlsx")
 
 #%% Max vote all _value
