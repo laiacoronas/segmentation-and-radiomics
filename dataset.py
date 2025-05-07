@@ -1,133 +1,165 @@
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
 Milestone 1 (Segmentation): Generation of an Annotated Dataset.
- 1. Extract VOI (Volume of Interest) from the CTs (intensity and mask).
- 2. Produce a single annotation for each lesion from the 4 radiologists’ annotations using Max-Voting.
- 3. Make Max-Voting to obtain the “Diagnosis”: if two or more radiologists have characterized the nodule with a Malignancy score > 3, then Diagnosis=1 (malignant), otherwise Diagnosis=0 (benign).
 """
 
-#%% Environment onfiguration
+#%% Environment configuration
 
-from scipy.ndimage import gaussian_filter, label
-from skimage.filters import threshold_otsu
-from skimage.morphology import ball, opening
-from nibabel.affines import apply_affine
-import matplotlib.pyplot as plt
-import pandas as pd
-import numpy as np
-import nibabel as nib
 import os
+import numpy as np
+import pandas as pd
+import nibabel as nib
+import matplotlib.pyplot as plt
 
+# Change working directory
 current_file = os.path.abspath(__file__)
 current_dir = os.path.dirname(current_file)
 os.chdir(current_dir)
 
-#%% Upload metadata
+#%% Load metadata
 
 df = pd.read_excel('data/sample/MetadatabyAnnotation.xlsx')
 
-#%% Extract VOIs
+#%% Utility functions
 
 def load_nifti(path):
     nii = nib.load(path)
-    return nii.get_fdata(), nii.affine, nii.header
+    data = nii.get_fdata()
+    affine = nii.affine
+    header = nii.header
+    return data, affine, header
 
 def save_nifti(volume, affine, header, path):
-    nib.save(nib.Nifti1Image(volume.astype(np.uint8), affine, header), path)
+    nib.save(nib.Nifti1Image(volume, affine, header), path)
 
-def extract_voi_from_coords(ct_path, gt_path, low_coords, high_coords, output_path):
+def extract_voi_from_coords(ct_path, bbox_low_mm, bbox_high_mm, output_path, padding_mm=10):
     ct, affine, header = load_nifti(ct_path)
-    gt, _, _ = load_nifti(gt_path)
+    
+    # Expand bounding box (padding in mm)
+    bbox_low_mm = np.array(bbox_low_mm) - padding_mm
+    bbox_high_mm = np.array(bbox_high_mm) + padding_mm
+    
+    # Convert LPS (DICOM) → RAS (NIFTI) (flip X and Y axes)
+    bbox_low_mm_ras = bbox_low_mm.copy()
+    bbox_high_mm_ras = bbox_high_mm.copy()
+    bbox_low_mm_ras[0] = -bbox_low_mm_ras[0]
+    bbox_low_mm_ras[1] = -bbox_low_mm_ras[1]
+    bbox_high_mm_ras[0] = -bbox_high_mm_ras[0]
+    bbox_high_mm_ras[1] = -bbox_high_mm_ras[1]
 
+    # Homogeneous coordinates
+    mm_coords_hom_low = np.append(bbox_low_mm_ras, 1)
+    mm_coords_hom_high = np.append(bbox_high_mm_ras, 1)
     
-    # Convert world (mm) → voxel indices
-    low_vox = np.round(apply_affine(np.linalg.inv(affine), low_coords)).astype(int)
-    high_vox = np.round(apply_affine(np.linalg.inv(affine), high_coords)).astype(int)
+    # Transform mm → voxel
+    voxel_coords_low = np.linalg.inv(affine) @ mm_coords_hom_low
+    voxel_coords_high = np.linalg.inv(affine) @ mm_coords_hom_high
+    voxel_indices_low = np.round(voxel_coords_low[:3]).astype(int)
+    voxel_indices_high = np.round(voxel_coords_high[:3]).astype(int)
     
-    z1, y1, x1 = low_vox
-    z2, y2, x2 = high_vox
+    # Ensure indices are ordered
+    voxel_indices_low_fixed = np.minimum(voxel_indices_low, voxel_indices_high)
+    voxel_indices_high_fixed = np.maximum(voxel_indices_low, voxel_indices_high)
     
-    x1, x2 = sorted([x1, x2])
-    y1, y2 = sorted([y1, y2])
-    z1, z2 = sorted([z1, z2])
-    
-    print(low_vox)
-    print(high_vox)
-    
-    ct_voi = ct[z1:z2, y1:y2, x1:x2]
-    save_nifti(ct_voi, affine, header, output_path)
-    shape = ct_voi.shape
-    gt_shape = gt.shape
+    x0, y0, z0 = voxel_indices_low_fixed
+    x1, y1, z1 = voxel_indices_high_fixed
 
-    print(f"VOI saved to {output_path} with shape {shape}")
-    print(f"Ground truth shape {gt_shape}")
+    # Clip to image bounds
+    x0 = max(0, x0)
+    y0 = max(0, y0)
+    z0 = max(0, z0)
+    x1 = min(ct.shape[0], x1)
+    y1 = min(ct.shape[1], y1)
+    z1 = min(ct.shape[2], z1)
 
+    if x0 >= x1 or y0 >= y1 or z0 >= z1:
+        return  # Invalid box → skip
 
-# Computing VOIs
+    ct_voi = ct[x0:x1, y0:y1, z0:z1]
+
+    # Compute new affine
+    new_affine = affine.copy()
+    translation_offset = affine[:3, :3] @ [x0, y0, z0]
+    new_affine[:3, 3] = affine[:3, 3] + translation_offset
+
+    save_nifti(ct_voi, new_affine, header, output_path)
+
+#%% Compute VOIs
 
 ct_base_path = "data/sample/CT/image"
 output_dir_VOIs = "output/VOIs"
 os.makedirs(output_dir_VOIs, exist_ok=True)
 
-last_nodule_id = None
 last_ct_id = None
+last_nodule_id = None
 voi_counter = 1
 
 for idx, row in df.iterrows():
     ct_id = row['patient_id']
     nodule_id = row['nodule_id']
-    
-    # Reset nodule counter
-    if ct_id != last_ct_id:
-        voi_counter = 1
-        last_ct_id = ct_id
 
-    # Compute only for different nodules
+    if ct_id != last_ct_id:
+        if ct_id == "LIDC-IDRI-0003":
+            voi_counter = 2
+        else:
+            voi_counter = 1
+        last_ct_id = ct_id
+        
     if nodule_id != last_nodule_id:
         last_nodule_id = nodule_id
         
-        x_low, y_low, z_low = row['bboxLowX'], row['bboxLowY'], row['bboxLowZ']
-        x_high, y_high, z_high = row['bboxHighX'], row['bboxHighY'], row['bboxHighZ']
+        bboxLowX, bboxLowY, bboxLowZ = row['bboxLowX'], row['bboxLowY'], row['bboxLowZ']
+        bboxHighX, bboxHighY, bboxHighZ = row['bboxHighX'], row['bboxHighY'], row['bboxHighZ']
+
         ct_path = os.path.join(ct_base_path, f"{ct_id}.nii.gz")
-        
-        if ct_id == "LIDC-IDRI-0003":
-            gt_path = os.path.join("data/full_data/VOIs/image/", f"{ct_id}_R_{voi_counter+1}.nii.gz")
-        else:
-            gt_path = os.path.join("data/full_data/VOIs/image/", f"{ct_id}_R_{voi_counter}.nii.gz")
-        
+        output_path = os.path.join(output_dir_VOIs, f"{ct_id}_R_{voi_counter}.nii.gz")
+
         if os.path.exists(ct_path):
-            output_path = os.path.join(output_dir_VOIs, f"{ct_id}_R_{voi_counter}.nii.gz")
-            extract_voi_from_coords(ct_path, gt_path, (x_low, y_low, z_low), (x_high, y_high, z_high), output_path)        
+            extract_voi_from_coords(ct_path, (bboxLowX, bboxLowY, bboxLowZ), (bboxHighX, bboxHighY, bboxHighZ), output_path)
+            voi_counter += 1
         else:
             continue
 
-        voi_counter += 1
+#%% Visualization
+
+ct_path = "data/sample/CT/image"
+output_dir_VOIs = "output/VOIs"
+ground_truth_dir = "data/full_data/VOIs/image"
+
+ct_files = [f for f in os.listdir(ct_path) if f.endswith('.nii.gz')]
+voi_files = [f for f in os.listdir(output_dir_VOIs) if f.endswith('.nii.gz')]
+
+for i,voi_file in enumerate(voi_files):
     
-        ct_path = os.path.join(ct_base_path, f"{ct_id}.nii.gz")
-#%% Visualize results
-
-# Load images
-ct1, affine1, header = load_nifti(os.path.join(current_dir,"data/sample/CT/image/LIDC-IDRI-0001.nii.gz"))
-r1, affine_r1, header_r1 = load_nifti(os.path.join(current_dir,"output/VOIs/LIDC-IDRI-0001_R_1.nii.gz"))
-r1_gt, affine_r1_gt, header_r1_gt = load_nifti(os.path.join(current_dir,"data/full_data/VOIs/image/LIDC-IDRI-0001_R_1.nii.gz"))
-
-# Visualize a middle slice 
-
-# Create subplots
-fig, axes = plt.subplots(1, 3, figsize=(10, 5))
-
-axes[0].imshow(ct1[:, :,  ct1.shape[2] // 2], cmap='gray')
-axes[0].set_title('Full CT')
-axes[0].axis('off')
-
-axes[1].imshow(r1_gt[:, :,  r1_gt.shape[2] // 2], cmap='gray')
-axes[1].set_title('Ground truth')
-axes[1].axis('off')
-
-axes[2].imshow(r1[:, :, 0, cmap='gray')
-axes[2].set_title('Computed mask')
-axes[2].axis('off')
-
-plt.tight_layout()
-plt.show()
+    if "LIDC-IDRI-0001" in voi_file:
+        ct ,_ ,_ = load_nifti(os.path.join(ct_path, ct_files[0]))
+    if "LIDC-IDRI-0003" in voi_file:
+        ct ,_ ,_ = load_nifti(os.path.join(ct_path, ct_files[1]))
+    if "LIDC-IDRI-0005" in voi_file:
+        ct ,_ ,_ = load_nifti(os.path.join(ct_path, ct_files[2]))
     
+    voi_pred ,_ ,_ = load_nifti(os.path.join(output_dir_VOIs, voi_file))
+    voi_gt ,_ ,_ = load_nifti(os.path.join(ground_truth_dir, voi_file))
+    
+    mid_ct = ct.shape[2] // 2
+    mid_pred = voi_pred.shape[2] // 2
+    mid_gt = voi_gt.shape[2] // 2
+
+    fig, axes = plt.subplots(1, 3, figsize=(8, 4))
+    
+    axes[0].imshow(ct[:, :, mid_ct], cmap='gray')
+    axes[0].set_title("Full CT (middle slice)")
+    axes[0].axis('off')
+    
+    axes[1].imshow(voi_gt[:, :, mid_gt], cmap='gray')
+    axes[1].set_title("Ground Truth VOI")
+    axes[1].axis('off')
+    
+    axes[2].imshow(voi_pred[:, :, mid_pred], cmap='gray')
+    axes[2].set_title(f"Extracted VOI")
+    axes[2].axis('off')
+    
+    plt.suptitle(f"Visualization for {voi_file}", fontsize=16)
+    plt.tight_layout()
+    plt.show()
