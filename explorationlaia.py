@@ -11,10 +11,12 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import numpy as np
 from sklearn.decomposition import PCA
+from sklearn.manifold import TSNE
 from sklearn.preprocessing import StandardScaler
 from sklearn.cluster import AgglomerativeClustering, KMeans, DBSCAN
 from scipy.stats import ttest_ind, mannwhitneyu
 from statsmodels.stats.multitest import multipletests
+from umap import UMAP
 
 
 def load_data(radiomics_path, annotations_path):
@@ -40,15 +42,22 @@ def preprocess_data(df, drop_cols):
     return df.drop(columns=drop_cols, errors="ignore").select_dtypes(include="number")
 
 
-def run_clustering(X, n_clusters=2, eps=1.5, min_samples=50):
+def run_clustering(X, n_clusters=2, eps=1.5, min_samples=50, method='pca', title_suffix='All Features'):
     # Standardize features
     scaler = StandardScaler()
     X_scaled = scaler.fit_transform(X)
     
-    # PCA for dimensionality reduction
-    pca = PCA(n_components=2)
-    components = pca.fit_transform(X_scaled)
-    df_pca = pd.DataFrame(components, columns=['PCA1', 'PCA2'])
+    # Dimensionality reduction
+    if method == 'pca':
+        reducer = PCA(n_components=2)
+    elif method == 'tsne':
+        reducer = TSNE(n_components=2, perplexity=30, random_state=42)
+    elif method == 'umap':
+        reducer = UMAP(n_components=2, n_neighbors=15, min_dist=0.1, random_state=42)
+    else:
+        raise ValueError(f"Unknown method: {method}")
+    components = reducer.fit_transform(X_scaled)
+    df_reduced = pd.DataFrame(components, columns=['Component 1', 'Component 2'])
     
     # Run clustering algorithms
     cluster_results = {
@@ -57,16 +66,15 @@ def run_clustering(X, n_clusters=2, eps=1.5, min_samples=50):
         "DBSCAN": DBSCAN(eps=eps, min_samples=min_samples).fit_predict(components)
     }
     
-    return df_pca, cluster_results
-
-
-def visualize_clusters(df_pca, cluster_results):
-    for method, labels in cluster_results.items():
+    # Visualize results
+    for cluster_name, labels in cluster_results.items():
         plt.figure(figsize=(8, 6))
-        sns.scatterplot(x=df_pca['PCA1'], y=df_pca['PCA2'], hue=labels, palette="viridis", s=100)
-        plt.title(f"{method} Clustering using PCA")
+        sns.scatterplot(x=df_reduced['Component 1'], y=df_reduced['Component 2'], hue=labels, palette="viridis", s=100)
+        plt.title(f"{cluster_name} Clustering ({method.upper()}) - {title_suffix}")
         plt.legend(title="Cluster")
         plt.show()
+    
+    return df_reduced, cluster_results
 
 
 def statistical_tests(X, target_col, alpha=0.01, correction="bonferroni"):
@@ -75,7 +83,6 @@ def statistical_tests(X, target_col, alpha=0.01, correction="bonferroni"):
     p_values = {}
     
     for col in X.drop(columns=target_col):
-        # Use non-parametric test if the data is not normally distributed
         if group1[col].std() < 1e-8 or group2[col].std() < 1e-8:
             continue
         stat, p = ttest_ind(group1[col], group2[col], equal_var=True)
@@ -89,38 +96,30 @@ def statistical_tests(X, target_col, alpha=0.01, correction="bonferroni"):
     return significant_features, dict(zip(features, corrected_p_vals))
 
 
-def visualize_correlation(df, features):
-    plt.figure(figsize=(12, 10))
-    corr_matrix = df[features].corr()
-    sns.heatmap(corr_matrix, annot=True, cmap='coolwarm', fmt='.2f', linewidths=0.5)
-    plt.title('Correlation Heatmap of Selected Features')
-    plt.show()
+def remove_highly_correlated_features(df, features, threshold=0.75):
+    corr_matrix = df[features].corr().abs()
+    upper = corr_matrix.where(np.triu(np.ones(corr_matrix.shape), k=1).astype(bool))
+    to_drop = [column for column in upper.columns if any(upper[column] > threshold)]
+    print(f"Highly correlated features (corr > {threshold}): {to_drop}")
+    return [col for col in features if col not in to_drop]
 
 
 def main():
     radiomics_df, annotations_df = load_data("glcm_features.csv", "output/Annotations_MaxVote.xlsx")
-    
-    # Merge radiomics and annotations
     radiomics_df = radiomics_df.merge(
         annotations_df[['image', 'Diagnosis_value']],
         on='image',
         how='left'
     )
-    
-    # Preprocess data
     X_radiomics = preprocess_data(radiomics_df, ['image', 'patient_id', 'nodule_id'])
     
-    # Run clustering
-    df_pca, cluster_results = run_clustering(X_radiomics)
-    visualize_clusters(df_pca, cluster_results)
-    
-    # Statistical tests
-    significant_features, corrected_p_vals = statistical_tests(X_radiomics, 'Diagnosis_value')
-    print("Significant Features:", significant_features)
-    
-    # Visualize correlation of selected features
-    if significant_features:
-        visualize_correlation(X_radiomics, significant_features)
+    for title_suffix, features in [
+        ('All Features', X_radiomics),
+        ('Significant Features', X_radiomics[statistical_tests(X_radiomics, 'Diagnosis_value')[0]]),
+        ('Significant Features (No High Corr)', X_radiomics[remove_highly_correlated_features(X_radiomics, statistical_tests(X_radiomics, 'Diagnosis_value')[0], threshold=0.8)])
+    ]:
+        for method in ['pca', 'tsne', 'umap']:
+            run_clustering(features, method=method, title_suffix=title_suffix)
 
 
 if __name__ == "__main__":
