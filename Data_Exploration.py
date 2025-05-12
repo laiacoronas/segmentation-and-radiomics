@@ -115,12 +115,14 @@ plt.show()
 
 #%% Statistical tests for radiomic features
 
+
 # Add the diagnosis
 radiomics_df = radiomics_df.merge(
     annotations_df[['image', 'Diagnosis_value']],
     on='image',
     how='left'
 )
+
 X_radiomics = radiomics_df.drop(columns=['image', 'patient_id', 'nodule_id'])
 
 # T-test
