@@ -26,9 +26,11 @@ def load_nii(filepath):
     return data, affine
 
 # Set the different directories
-image_dir = r"C:\Users\Maria Fité\Documents\MSC - HEALTH DATA SCIENCE\Q2\Machine Learning (ML)\Challange 2\Dataset\VOIs\image\"
-mask_dir = r"C:\Users\Maria Fité\Documents\MSC - HEALTH DATA SCIENCE\Q2\Machine Learning (ML)\Challange 2\Dataset\VOIs\nodule_mask\"
-output_dir = r"C:\Users\Maria Fité\Documents\MSC - HEALTH DATA SCIENCE\Q2\Machine Learning (ML)\Challange 2\Milestone 2"
+image_dir = r"data/full_data/VOIs/image"
+mask_dir = r"data/full_data/VOIs/nodule_mask"
+current_file = os.path.abspath(__file__)
+current_dir = os.path.dirname(current_file)
+output_dir = current_dir
 
 #%% Extract features
 
