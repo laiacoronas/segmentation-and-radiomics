@@ -23,8 +23,8 @@ import numpy as np
 #%% Loading data
 
 # Load the data
-radiomics_df = pd.read_csv(r"C:\Users\Maria Fité\Documents\MSC - HEALTH DATA SCIENCE\Q2\Machine Learning (ML)\Challange 2\Milestone 2\glcm_features.csv")
-annotations_df = pd.read_excel(r"C:\Users\Maria Fité\Documents\MSC - HEALTH DATA SCIENCE\Q2\Machine Learning (ML)\Challange 2\Milestone 2\Annotations_MaxVote.xlsx")
+radiomics_df = pd.read_csv(r"glcm_features.csv")
+annotations_df = pd.read_excel(r"output/Annotations_MaxVote.xlsx")
 
 # Remove the first column
 radiomics_df = radiomics_df.drop(radiomics_df.columns[0], axis=1)
@@ -153,14 +153,7 @@ upper = corr_matrix.where(np.triu(np.ones(corr_matrix.shape), k=1).astype(bool))
 to_drop = [column for column in upper.columns if any(upper[column] > 0.9)]
 print(f"Highly correlated features (corr > 0.9): {to_drop}")
 kept_features = [col for col in selected_features_rad_df.columns if col not in to_drop]
-print(f"Final selected features: {kept_features}")
-
-# Correlation matrix of kept features
-selected_features_rad_df = X_radiomics[kept_features]
-plt.figure(figsize=(10, 8))
-sns.heatmap(selected_features_rad_df.corr(), annot=True, cmap='coolwarm', fmt='.2f', linewidths=0.5)
-plt.title('Correlation Heatmap of Selected Features')
-plt.show()
+print(f"Relevant features selected: {kept_features}")
 
 #%% First inspection of annotations
 
