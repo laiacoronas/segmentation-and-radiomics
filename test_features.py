@@ -92,12 +92,23 @@ def statistical_tests(X, target_col, alpha=0.01, correction="bonferroni"):
     features, p_vals = list(p_values.keys()), list(p_values.values())
     reject, corrected_p_vals, _, _ = multipletests(p_vals, alpha=alpha, method=correction)
     significant_features = [f for f, r in zip(features, reject) if r]
+    non_significant = [(f, p) for f, r, p in zip(features, reject, corrected_p_vals) if not r]
+    print(f"Non-significant features: {non_significant}")
     
     return significant_features, dict(zip(features, corrected_p_vals))
 
 
 def remove_highly_correlated_features(df, features, threshold=0.75):
     corr_matrix = df[features].corr().abs()
+    
+    # Plot the heatmap
+    plt.figure(figsize=(15, 15))
+    sns.heatmap(corr_matrix, annot=True, fmt=".2f", cmap="coolwarm", square=True, cbar_kws={"shrink": 0.75})
+    plt.title("Feature Correlation Matrix")
+    plt.tight_layout()
+    plt.show()
+    
+    # See highly correlated features
     upper = corr_matrix.where(np.triu(np.ones(corr_matrix.shape), k=1).astype(bool))
     to_drop = [column for column in upper.columns if any(upper[column] > threshold)]
     print(f"Highly correlated features (corr > {threshold}): {to_drop}")
@@ -111,8 +122,9 @@ def main():
         on='image',
       how='left'
     )
+
+    # Radiomic features
     X_radiomics = preprocess_data(radiomics_df, ['image', 'patient_id', 'nodule_id'])
-    
     for title_suffix, features in [
         ('All Features', X_radiomics),
         ('Significant Features', X_radiomics[statistical_tests(X_radiomics, 'Diagnosis_value')[0]]),
@@ -121,6 +133,15 @@ def main():
         for method in ['pca', 'tsne', 'umap']:
             run_clustering(features, method=method, title_suffix=title_suffix)
 
+    # Annotation features
+    X_annotations = preprocess_data(annotations_df, ['image', 'patient_id', 'nodule_id'])
+    for title_suffix, features in [
+        ('All Features', X_annotations),
+        ('Significant Features', X_annotations[statistical_tests(X_annotations, 'Diagnosis_value')[0]]),
+        ('Significant Features (No High Corr)', X_annotations[remove_highly_correlated_features(X_annotations, statistical_tests(X_annotations, 'Diagnosis_value')[0], threshold=0.8)])
+    ]:
+        for method in ['pca', 'tsne', 'umap']:
+            run_clustering(features, method=method, title_suffix=title_suffix)
 
 if __name__ == "__main__":
     main()
