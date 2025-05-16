@@ -109,7 +109,7 @@ def main():
     radiomics_df = radiomics_df.merge(
         annotations_df[['image', 'Diagnosis_value']],
         on='image',
-        how='left'
+      how='left'
     )
     X_radiomics = preprocess_data(radiomics_df, ['image', 'patient_id', 'nodule_id'])
     
