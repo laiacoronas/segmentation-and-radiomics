@@ -144,9 +144,6 @@ def clustering_radiomic(X):
     
     # Step 2: Dimensionality reductions
     reducers = {
-      #  "PCA": PCA(n_components=2),
-      #  "t-SNE": TSNE(n_components=2, perplexity=180, random_state=42),
-      #  "UMAP": UMAP(n_components=2, n_neighbors=10, min_dist=1, random_state=42)
         "PCA": PCA(n_components=2),
         "t-SNE": TSNE(n_components=2, random_state=42),
         "UMAP": UMAP(n_components=2, random_state=42)
@@ -154,9 +151,6 @@ def clustering_radiomic(X):
     
     # Step 3: Clustering algorithms
     clusterers = {
-      #  "KMeans": KMeans(n_clusters=2, random_state=42, init='k-means++'),
-      #  "DBSCAN": DBSCAN(eps=0.8, min_samples=60),
-      #  "Hierarchical": AgglomerativeClustering(n_clusters=2)
         "KMeans": KMeans(n_clusters=2, random_state=42),
         "DBSCAN": DBSCAN(min_samples=50),
         "Hierarchical": AgglomerativeClustering(n_clusters=2)
