@@ -10,9 +10,8 @@ This project implements a complete machine learning pipeline for pulmonary mass 
 - Evaluate classifiers using cross-validation grouped by slice and by nodule.
 - Tune hyperparameters using Grid Search, Random Search, and Optuna.
 
-<pre>
 ## Directory Structure
-```
+<pre>
 ├── data/               # CT volumes, masks, and annotations
 ├── feature_spaces/     # Extracted and selected features
 ├── output/             # Intermediate files, results, and annotations
@@ -21,7 +20,6 @@ This project implements a complete machine learning pipeline for pulmonary mass 
 ├── visualizations/     # Plots for evaluation and feature analysis
 ├── notebooks/          # Jupyter notebooks for experimentation
 └── README.md           # Project description
-```
 </pre>
 
 
