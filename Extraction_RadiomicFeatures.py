@@ -36,7 +36,7 @@ output_dir = os.path.join(current_dir, "feature_spaces")
 # Collect features from all images
 all_features = []
 
-for filename in os.listdir(t):
+for filename in os.listdir(image_dir):
     # Extract image ID
     base_name = filename.replace(".nii.gz", "")
     
