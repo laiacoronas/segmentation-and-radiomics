@@ -15,10 +15,6 @@ This project implements a complete machine learning pipeline for pulmonary mass 
 ├── data/               # CT volumes, masks, and annotations
 ├── feature_spaces/     # Extracted and selected features
 ├── output/             # Intermediate files, results, and annotations
-├── segmentation/       # Code for VOI extraction and unsupervised segmentation
-├── classification/     # Code for feature extraction, selection, and ML pipelines
-├── visualizations/     # Plots for evaluation and feature analysis
-├── notebooks/          # Jupyter notebooks for experimentation
 └── README.md           # Project description
 </pre>
 
@@ -26,7 +22,7 @@ This project implements a complete machine learning pipeline for pulmonary mass 
 ## Milestones
 - Milestone 1: Segmentation using unsupervised methods and VOI extraction
 - Milestone 2: Feature extraction (GLCM and VGG16) and unsupervised data analysis
-- Milestone 3: Supervised classification using cross-validation and feature selection
+- Milestone 3: Deep feature extraction, feature selection and supervised classification
 - Milestone 4: Hyperparameter optimization using Grid Search, Random Search, and Optuna
 
 ## Tools and Libraries
