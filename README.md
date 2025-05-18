@@ -1,11 +1,35 @@
-# MILESTONE 1
+# Pulmonary Lesion Analysis with Machine Learning
 
-This milestone is intended to apply unsupervised techniques to segment pulmonary lesions in volumes of interest (VOIs) extracted from CT scans. This involves implementing a standard pipeline over intensity volumes, including the use of Otsu thresholding combined with various morphological operations to refine segmentation results. Additionally, k-means clustering will be applied to classic filter banks to explore alternative segmentation strategies. The performance of these methods will be quantified using standard segmentation metrics, and a comparative analysis will be conducted to discuss their respective advantages, disadvantages, and sensitivity to parameters.
+## Project Overview
+This project implements a complete machine learning pipeline for pulmonary mass analysis using CT scans. It spans unsupervised lesion segmentation, radiomic and deep feature extraction, supervised classification, and hyperparameter optimization. The goal is to compare traditional radiomics-based approaches with deep learning representations for diagnostic classification tasks.
 
-The repository is organized as follows:
+## Objectives
+- Segment pulmonary nodules from CT scans using unsupervised techniques.
+- Extract radiomic features (GLCM) and deep features using VGG16.
+- Apply feature selection methods to identify the most relevant features.
+- Evaluate classifiers using cross-validation grouped by slice and by nodule.
+- Tune hyperparameters using Grid Search, Random Search, and Optuna.
 
-- Data: Contains all the input data, including full datasets and samples used to create the annotations, segmentations, and results.
+## Directory Structure
+├── data/                         # CT volumes, masks, and annotations
+├── feature_spaces/       # Extracted and selected features
+├── output/                      # Intermediate files, results, and annotations
+├── segmentation/          # Code for VOI extraction and unsupervised segmentation
+├── classification/           # Code for feature extraction, selection, and ML pipelines
+├── visualizations/          # Plots for evaluation and feature analysis
+├── notebooks/               # Jupyter notebooks for experimentation
+└── README.md           # Project description
 
-- Output: Contains all the results of this project, including the annotated dataset, VOIs of the sample data, and masks generated from the segmentation of the entire dataset.
+## Milestones
+- Milestone 1: Segmentation using unsupervised methods and VOI extraction
+- Milestone 2: Feature extraction (GLCM and VGG16) and unsupervised data analysis
+- Milestone 3: Supervised classification using cross-validation and feature selection
+- Milestone 4: Hyperparameter optimization using Grid Search, Random Search, and Optuna
 
-- Codes: Scripts used to perform each task and save the results in the output folder.
+## Tools and Libraries
+- nibabel, SimpleITK: medical image I/O
+- scikit-learn: ML pipeline, feature selection, cross-validation
+- PyRadiomics: radiomic feature extraction
+- TensorFlow / Keras: VGG16 feature extraction
+- Optuna: Bayesian hyperparameter optimization
+- matplotlib, seaborn: plotting and visualization

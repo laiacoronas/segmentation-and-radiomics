@@ -28,16 +28,15 @@ def load_nii(filepath):
 # Set the different directories
 image_dir = r"data/full_data/VOIs/image"
 mask_dir = r"data/full_data/VOIs/nodule_mask"
-current_file = os.path.abspath(__file__)
-current_dir = os.path.dirname(current_file)
-output_dir = current_dir
+current_dir = os.path.dirname(os.path.abspath(__file__))
+output_dir = os.path.join(current_dir, "feature_spaces")
 
 #%% Extract features
 
 # Collect features from all images
 all_features = []
 
-for filename in os.listdir(input_folder):
+for filename in os.listdir(t):
     # Extract image ID
     base_name = filename.replace(".nii.gz", "")
     
