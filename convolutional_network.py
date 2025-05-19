@@ -142,7 +142,7 @@ kbest.fit(X_scaled, y)
 kbest_mask = kbest.get_support()
 
 # Wrapper method: SelectFromModel (Random Forest)
-rf_selector = SelectFromModel(RandomForestClassifier(n_estimators=100, random_state=42), threshold='median')
+rf_selector = SelectFromModel(RandomForestClassifier(n_estimators=100, random_state=42), threshold='mean')
 rf_selector.fit(X_scaled, y)
 rf_mask = rf_selector.get_support()
 
