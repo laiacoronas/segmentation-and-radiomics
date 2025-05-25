@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 """
-Created on Thu May 15 20:51:44 2025
-
-@author: jaume
+Milestone 2 (Classification): Data Exploration
+Use different unsupervised techniques (eg. hierarchical clustering) and 
+statistical tests to get correlations across radiological descriptions and 
+also detect those annotations more relevant to the diagnosis.
 """
 
 # %% import libraries
@@ -82,7 +83,7 @@ def ttest(XY_annotations):
     print(f"Signifficant features for diagnosis: {results_significant}")
 
 
-# %% Clustering deffinition for radiological features
+# %% Clustering deffinition
 
 def clustering_radiological(X):
     
@@ -126,63 +127,9 @@ def clustering_radiological(X):
     plt.tight_layout()
     plt.show()
     
-    
-#%% Radiological features 
+#%% Application to Radiological features
 X_annotations = annotations_df.filter(regex='_value$').drop(columns=['Diagnosis_value', 'Malignancy_value'], errors='ignore')
 XY_annotations = annotations_df.filter(regex='_value$').drop(columns=['Malignancy_value'])
 correlations(X_annotations)
 ttest(XY_annotations)
 clustering_radiological(X_annotations)
-
-
-# %% Clustering deffinition for radiological features
-
-def clustering_radiomic(X):
-    
-    # Step 1: Standardize
-    X_scaled = StandardScaler().fit_transform(X)
-    
-    # Step 2: Dimensionality reductions
-    reducers = {
-        "PCA": PCA(n_components=2),
-        "t-SNE": TSNE(n_components=2, random_state=42),
-        "UMAP": UMAP(n_components=2, random_state=42)
-    }
-    
-    # Step 3: Clustering algorithms
-    clusterers = {
-        "KMeans": KMeans(n_clusters=2, random_state=42),
-        "DBSCAN": DBSCAN(min_samples=50),
-        "Hierarchical": AgglomerativeClustering(n_clusters=2)
-    }
-    
-    # Step 4: Apply combinations and plot
-    plt.figure(figsize=(15, 12))
-    plot_num = 1
-    
-    for reducer_name, reducer in reducers.items():
-        X_reduced = reducer.fit_transform(X_scaled)
-        X_reduced = StandardScaler().fit_transform(X_reduced) # Scale the new space for clustering
-    
-        for clusterer_name, clusterer in clusterers.items():
-            labels = clusterer.fit_predict(X_reduced)
-    
-            plt.subplot(len(reducers), len(clusterers), plot_num)
-            for label in set(labels):
-                mask = labels == label
-                plt.scatter(X_reduced[mask, 0], X_reduced[mask, 1], label=f'Cluster {label}', s=10)
-            plt.title(f'{reducer_name} + {clusterer_name}')
-            #plt.xticks([])
-            #plt.yticks([])
-            plot_num += 1
-    
-    plt.tight_layout()
-    plt.show()
-    
-
-#%% Radiomic features
-X_radiomics = radiomics_df.drop(columns=['Diagnosis_value', 'image', 'patient_id', 'nodule_id'], errors='ignore')
-XY_radiomics = radiomics_df.drop(columns=['image', 'patient_id', 'nodule_id'], errors='ignore')
-correlations(X_radiomics)
-ttest(XY_radiomics)
-clustering_radiomic(X_radiomics)
